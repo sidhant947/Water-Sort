@@ -170,14 +170,24 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     const double minMarginY = 16.0;
 
     final int capacity = level.tubes.isNotEmpty ? level.tubes.first.capacity : 4;
-    final double targetAspectRatio = (capacity * 0.68 + 0.65).clamp(3.1, 4.8);
-    final double minAspectRatio = (capacity * 0.55 + 0.45).clamp(2.5, 3.8);
+    final double targetAspectRatio;
+    final double minAspectRatio;
+    if (capacity >= 6) {
+      targetAspectRatio = 4.2;
+      minAspectRatio = 2.8;
+    } else if (capacity == 5) {
+      targetAspectRatio = 4.0;
+      minAspectRatio = 3.2;
+    } else {
+      targetAspectRatio = 3.4;
+      minAspectRatio = 2.6;
+    }
 
     final List<int> candidateRows = [];
     if (tubeCount <= 4) {
       candidateRows.add(1);
     } else if (tubeCount <= 8) {
-      candidateRows.add(2);
+      candidateRows.addAll([2, capacity >= 6 ? 3 : 2]);
     } else if (tubeCount <= 12) {
       candidateRows.addAll([2, 3]);
     } else if (tubeCount <= 16) {
@@ -193,6 +203,8 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     double bestSpacingY = 12.0;
     double bestStartY = 0.0;
     double bestScore = -1.0;
+
+    final double maxAllowedWidth = capacity >= 6 ? 64.0 : 54.0;
 
     for (final r in candidateRows) {
       final base = tubeCount ~/ r;
@@ -213,7 +225,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
       for (double ar = targetAspectRatio; ar >= minAspectRatio; ar -= 0.05) {
         double w = math.min(maxWFromWidth, maxHFromHeight / ar);
-        w = w.clamp(18.0, 54.0);
+        w = w.clamp(18.0, maxAllowedWidth);
         double h = (w * ar).clamp(18.0 * ar, maxHFromHeight);
         w = h / ar;
 
