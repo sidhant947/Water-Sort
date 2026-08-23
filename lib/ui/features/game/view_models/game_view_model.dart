@@ -525,82 +525,93 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     final newLevel = state.level!.copyWith(tubes: newTubes);
     final isComplete = newLevel.isComplete;
 
-    if (isComplete) {
-      _timer?.cancel();
-      HapticFeedback.heavyImpact();
-    }
+      if (isComplete) {
+        _timer?.cancel();
+        HapticFeedback.heavyImpact();
+      }
 
-    state = state.copyWith(
-      level: newLevel,
-      moveCount: state.moveCount + 1,
-      selectedTubeIndex: () => null,
-      pouringFromIndex: () => null,
-      pouringToIndex: () => null,
-      isComplete: isComplete,
-      moveHistory: [...state.moveHistory, snapshot],
-    );
+      if (_cachedSolution != null && _cachedSolution!.isNotEmpty) {
+        final expectedMove = _cachedSolution!.first;
+        if (expectedMove.fromIndex == fromIndex && expectedMove.toIndex == toIndex) {
+          _cachedSolution!.removeAt(0);
+        } else {
+          _cachedSolution = null;
+        }
+      }
 
-    _saveCurrentState();
+      state = state.copyWith(
+        level: newLevel,
+        moveCount: state.moveCount + 1,
+        selectedTubeIndex: () => null,
+        pouringFromIndex: () => null,
+        pouringToIndex: () => null,
+        isComplete: isComplete,
+        moveHistory: [...state.moveHistory, snapshot],
+      );
 
-    if (isComplete) {
-      await completeLevel();
-    }
-  }
+      _saveCurrentState();
 
-  Future<void> completeLevel() async {
-    if (state.level == null || !state.isComplete || state.isProgressSaved) return;
-    state = state.copyWith(isProgressSaved: true);
-    _progressRepository.clearActiveLevelState();
-    final moves = state.moveCount;
-    final optimal = state.level?.optimalMoves ?? 0;
-    final int filledStars;
-    if (moves < optimal) {
-      filledStars = 3;
-    } else if (moves == optimal) {
-      filledStars = 2;
-    } else {
-      filledStars = 1;
-    }
-    await _progressRepository.saveLevelStars(state.level!.levelNumber, filledStars);
-    if (state.isRandomMode) {
-      await _progressRepository.addRandomLevelMoves(state.moveCount);
-    } else {
-      await _progressRepository.completeLevel(state.level!.levelNumber, state.moveCount);
-    }
-  }
-
-  void resetLevel() {
-    _progressRepository.clearActiveLevelState();
-    if (state.level != null) {
-      if (state.isRandomMode) {
-        loadRandomLevel(
-          state.randomDifficulty ?? 'Easy',
-          colorCount: state.randomColorCount,
-          capacity: state.randomCapacity,
-          seed: state.randomSeed,
-        );
-      } else {
-        loadLevel(state.level!.levelNumber);
+      if (isComplete) {
+        await completeLevel();
       }
     }
-  }
 
-  void undoMove() {
-    if (!state.canUndo || state.level == null) return;
+    Future<void> completeLevel() async {
+      if (state.level == null || !state.isComplete || state.isProgressSaved) return;
+      state = state.copyWith(isProgressSaved: true);
+      _progressRepository.clearActiveLevelState();
+      final moves = state.moveCount;
+      final optimal = state.level?.optimalMoves ?? 0;
+      final int filledStars;
+      if (moves < optimal) {
+        filledStars = 3;
+      } else if (moves == optimal) {
+        filledStars = 2;
+      } else {
+        filledStars = 1;
+      }
+      await _progressRepository.saveLevelStars(state.level!.levelNumber, filledStars);
+      if (state.isRandomMode) {
+        await _progressRepository.addRandomLevelMoves(state.moveCount);
+      } else {
+        await _progressRepository.completeLevel(state.level!.levelNumber, state.moveCount);
+      }
+    }
 
-    HapticFeedback.lightImpact();
+    void resetLevel() {
+      _cachedSolution = null;
+      _progressRepository.clearActiveLevelState();
+      if (state.level != null) {
+        if (state.isRandomMode) {
+          loadRandomLevel(
+            state.randomDifficulty ?? 'Easy',
+            colorCount: state.randomColorCount,
+            capacity: state.randomCapacity,
+            seed: state.randomSeed,
+          );
+        } else {
+          loadLevel(state.level!.levelNumber);
+        }
+      }
+    }
 
-    final snapshot = state.moveHistory.last;
-    final newHistory = List<MoveSnapshot>.from(state.moveHistory)..removeLast();
+    void undoMove() {
+      if (!state.canUndo || state.level == null) return;
 
-    state = state.copyWith(
-      level: state.level!.copyWith(tubes: snapshot.tubes),
-      selectedTubeIndex: () => null,
-      isComplete: false,
-      moveHistory: newHistory,
-      hintFromIndex: () => null,
-      hintToIndex: () => null,
-    );
+      _cachedSolution = null;
+      HapticFeedback.lightImpact();
+
+      final snapshot = state.moveHistory.last;
+      final newHistory = List<MoveSnapshot>.from(state.moveHistory)..removeLast();
+
+      state = state.copyWith(
+        level: state.level!.copyWith(tubes: snapshot.tubes),
+        selectedTubeIndex: () => null,
+        isComplete: false,
+        moveHistory: newHistory,
+        hintFromIndex: () => null,
+        hintToIndex: () => null,
+      );
 
     _saveCurrentState();
   }
@@ -636,17 +647,30 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     _progressRepository.saveActiveLevelState(stateMap);
   }
 
+  List<WaterSortMove>? _cachedSolution;
+
   bool showHint() {
     if (state.level == null || state.isComplete || state.isTimeOut) return false;
     final solver = LevelSolver();
-    final solution = solver.solve(state.level!.tubes);
-    if (solution != null && solution.isNotEmpty) {
+
+    if (_cachedSolution == null || _cachedSolution!.isEmpty) {
+      _cachedSolution = solver.solve(state.level!.tubes);
+    }
+
+    if (_cachedSolution != null && _cachedSolution!.isNotEmpty) {
+      final firstMove = _cachedSolution!.first;
+      if (!isValidPour(firstMove.fromIndex, firstMove.toIndex)) {
+        _cachedSolution = solver.solve(state.level!.tubes);
+      }
+    }
+
+    if (_cachedSolution != null && _cachedSolution!.isNotEmpty) {
       HapticFeedback.lightImpact();
-      final firstMove = solution.first;
+      final nextMove = _cachedSolution!.first;
       state = state.copyWith(
         selectedTubeIndex: () => null,
-        hintFromIndex: () => firstMove.fromIndex,
-        hintToIndex: () => firstMove.toIndex,
+        hintFromIndex: () => nextMove.fromIndex,
+        hintToIndex: () => nextMove.toIndex,
       );
       return true;
     }

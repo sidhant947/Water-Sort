@@ -132,41 +132,6 @@ class _GameViewState extends ConsumerState<GameView> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: AppColors.accent.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.swap_vert_rounded,
-                            size: 14,
-                            color: AppColors.accent,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${state.moveCount}',
-                          style: TextStyle(
-                            fontFamily: 'BebasNeue',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.headingWhite,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 1.0,
-                      height: 16,
-                      color: const Color(0xFF3E3E4D),
-                    ),
-                    const SizedBox(width: 8),
                     Expanded(
                       child: Center(
                         child: AnimatedSwitcher(
@@ -198,7 +163,7 @@ class _GameViewState extends ConsumerState<GameView> {
                                       _formatTime(state.timeLeft!),
                                       style: TextStyle(
                                         fontFamily: 'BebasNeue',
-                                        fontSize: 14,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.w900,
                                         color: state.timeLeft! <= 15
                                             ? Colors.redAccent
@@ -212,7 +177,7 @@ class _GameViewState extends ConsumerState<GameView> {
                                   state.isRandomMode ? 'RANDOM' : 'LEVEL ${widget.levelNumber}',
                                   style: TextStyle(
                                     fontFamily: 'BebasNeue',
-                                    fontSize: 14,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w900,
                                     color: !state.isRandomMode && widget.levelNumber % 10 == 0
                                         ? Colors.redAccent
@@ -223,56 +188,6 @@ class _GameViewState extends ConsumerState<GameView> {
                                   ),
                                 ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 1.0,
-                      height: 16,
-                      color: const Color(0xFF3E3E4D),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: state.canUndo
-                          ? () => ref
-                                .read(gameViewModelProvider.notifier)
-                                .undoMove()
-                          : null,
-                      behavior: HitTestBehavior.opaque,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: (state.canUndo
-                                      ? AppColors.accent
-                                      : AppColors.subtext)
-                                  .withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.undo_rounded,
-                              size: 14,
-                              color: state.canUndo
-                                  ? AppColors.accent
-                                  : AppColors.subtext.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'UNDO',
-                            style: TextStyle(
-                              fontFamily: 'BebasNeue',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: state.canUndo
-                                  ? AppColors.accent
-                                  : AppColors.subtext.withValues(alpha: 0.3),
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                     GestureDetector(
@@ -318,37 +233,167 @@ class _GameViewState extends ConsumerState<GameView> {
                     )
                   : _buildGame(state),
             ),
+            _buildBottomBar(state),
           ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: state.isHintHelperEnabled
-          ? FloatingActionButton(
-              onPressed: () {
-                final success = ref.read(gameViewModelProvider.notifier).showHint();
-                if (!success) {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('No solution possible from current state. Try undoing some moves!'),
-                      duration: Duration(seconds: 2),
+    );
+  }
+
+  Widget _buildBottomBar(GameViewModelState state) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        color: Colors.transparent,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Undo Button
+            Expanded(
+              child: GestureDetector(
+                onTap: state.canUndo
+                    ? () => ref
+                          .read(gameViewModelProvider.notifier)
+                          .undoMove()
+                    : null,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: state.canUndo
+                        ? AppColors.accent.withValues(alpha: 0.12)
+                        : const Color(0xFF1E1E24).withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: state.canUndo
+                          ? AppColors.accent.withValues(alpha: 0.35)
+                          : const Color(0xFF2E2E38).withValues(alpha: 0.5),
+                      width: 1.0,
                     ),
-                  );
-                }
-              },
-              backgroundColor: const Color(0xFF1E1E24),
-              foregroundColor: AppColors.accent,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: AppColors.accent.withValues(alpha: 0.3),
-                  width: 1.2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.undo_rounded,
+                        size: 18,
+                        color: state.canUndo
+                            ? AppColors.accent
+                            : AppColors.subtext.withValues(alpha: 0.35),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'UNDO',
+                        style: TextStyle(
+                          fontFamily: 'BebasNeue',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: state.canUndo
+                              ? AppColors.accent
+                              : AppColors.subtext.withValues(alpha: 0.35),
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              child: const Icon(Icons.lightbulb_rounded, size: 24),
-            )
-          : null,
+            ),
+            const SizedBox(width: 12),
+            // Moves Counter
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E24).withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: const Color(0xFF2E2E3A).withValues(alpha: 0.6),
+                  width: 1.0,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'MOVES',
+                    style: TextStyle(
+                      fontFamily: 'BebasNeue',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.subtext,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  Text(
+                    '${state.moveCount}',
+                    style: TextStyle(
+                      fontFamily: 'BebasNeue',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.headingWhite,
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (state.isHintHelperEnabled) ...[
+              const SizedBox(width: 12),
+              // Hint Button
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final success = ref.read(gameViewModelProvider.notifier).showHint();
+                    if (!success) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No solution possible from current state. Try undoing some moves!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFB300).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFFFFB300).withValues(alpha: 0.35),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          Icons.lightbulb_rounded,
+                          size: 18,
+                          color: Color(0xFFFFB300),
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'HINT',
+                          style: TextStyle(
+                            fontFamily: 'BebasNeue',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFFB300),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

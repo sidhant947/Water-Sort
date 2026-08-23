@@ -9,7 +9,7 @@ class WaterSortMove {
 }
 
 class LevelSolver {
-  List<WaterSortMove>? solve(List<Tube> initialTubes, {int maxVisited = 50000}) {
+  List<WaterSortMove>? solve(List<Tube> initialTubes, {int maxVisited = 150000}) {
     final visited = <String>{};
     List<WaterSortMove>? result;
 
@@ -41,6 +41,13 @@ class LevelSolver {
       final moves = _getValidMoves(currentTubes);
 
       for (final move in moves) {
+        if (path.isNotEmpty) {
+          final lastMove = path.last;
+          if (lastMove.fromIndex == move.toIndex && lastMove.toIndex == move.fromIndex) {
+            continue;
+          }
+        }
+
         final nextTubes = _performPour(currentTubes, move.fromIndex, move.toIndex);
         if (nextTubes != null) {
           path.add(move);
@@ -106,15 +113,23 @@ class LevelSolver {
         final willRevealNewColor = !willEmptySource && countToMove == pourCount;
 
         if (willSolveTarget) {
-          score += 100;
+          score += 150;
         } else if (willEmptySource) {
-          score += 60;
+          score += 80;
         } else if (willRevealNewColor) {
-          score += 40;
+          score += 50;
         } else if (!toTube.isEmpty) {
-          score += 20;
+          if (pourCount == countToMove) {
+            score += 35;
+          } else {
+            score += 10;
+          }
         } else {
-          score += 5;
+          if (fromTube.colors.length - pourCount > 0) {
+            score += 25;
+          } else {
+            score += 5;
+          }
         }
 
         moves.add(_ScoredMove(move: WaterSortMove(fromIndex: i, toIndex: j), score: score));
