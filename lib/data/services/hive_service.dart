@@ -207,4 +207,16 @@ class HiveService {
     final profileId = _getActiveProfileIdSync();
     await _settingsBox.put('${profileId}_theme_pack', themeName);
   }
+
+  bool areThemesUnlocked() {
+    final profileId = _getActiveProfileIdSync();
+    final val = _settingsBox.get('themes_unlocked') ?? _settingsBox.get('${profileId}_themes_unlocked');
+    return val == true;
+  }
+
+  Future<void> setThemesUnlocked(bool unlocked) async {
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('themes_unlocked', unlocked);
+    await _settingsBox.put('${profileId}_themes_unlocked', unlocked);
+  }
 }

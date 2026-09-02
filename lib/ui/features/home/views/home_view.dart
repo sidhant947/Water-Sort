@@ -84,10 +84,17 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   else
                     const SizedBox.shrink(),
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () async {
                       final Uri url = Uri.parse('https://ko-fi.com/sidhant947');
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      try {
+                        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                          await launchUrl(url, mode: LaunchMode.platformDefault);
+                        }
+                      } catch (_) {
+                        try {
+                          await launchUrl(url, mode: LaunchMode.platformDefault);
+                        } catch (_) {}
                       }
                     },
                     child: Container(

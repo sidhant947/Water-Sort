@@ -176,4 +176,12 @@ class ProgressRepository {
   Future<void> setThemePack(String themeName) async {
     await _hiveService.setThemePack(themeName);
   }
+
+  bool areThemesUnlocked() {
+    return _hiveService.areThemesUnlocked();
+  }
+
+  Future<void> setThemesUnlocked(bool unlocked) async {
+    await _hiveService.setThemesUnlocked(unlocked);
+  }
 }

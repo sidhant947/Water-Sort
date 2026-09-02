@@ -19,6 +19,7 @@ class HomeViewModelState {
     this.isSoundEffectsEnabled = true,
     this.levelStars = const {},
     this.activeTheme = ThemePack.midnight,
+    this.areThemesUnlocked = false,
   });
 
   final UserProgress? progress;
@@ -33,6 +34,7 @@ class HomeViewModelState {
   final bool isSoundEffectsEnabled;
   final Map<dynamic, dynamic> levelStars;
   final ThemePack activeTheme;
+  final bool areThemesUnlocked;
 
   HomeViewModelState copyWith({
     UserProgress? progress,
@@ -47,6 +49,7 @@ class HomeViewModelState {
     bool? isSoundEffectsEnabled,
     Map<dynamic, dynamic>? levelStars,
     ThemePack? activeTheme,
+    bool? areThemesUnlocked,
   }) {
     return HomeViewModelState(
       progress: progress ?? this.progress,
@@ -61,6 +64,7 @@ class HomeViewModelState {
       isSoundEffectsEnabled: isSoundEffectsEnabled ?? this.isSoundEffectsEnabled,
       levelStars: levelStars ?? this.levelStars,
       activeTheme: activeTheme ?? this.activeTheme,
+      areThemesUnlocked: areThemesUnlocked ?? this.areThemesUnlocked,
     );
   }
 }
@@ -85,6 +89,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final isSoundEffectsEnabled = _progressRepository.isSoundEffectsEnabled();
       final levelStars = _progressRepository.getAllLevelStars();
       final themeName = _progressRepository.getThemePack();
+      final areThemesUnlocked = _progressRepository.areThemesUnlocked();
       final theme = ThemePack.values.firstWhere(
         (t) => t.name == themeName,
         orElse: () => ThemePack.midnight,
@@ -102,6 +107,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
         isSoundEffectsEnabled: isSoundEffectsEnabled,
         levelStars: levelStars,
         activeTheme: theme,
+        areThemesUnlocked: areThemesUnlocked,
         isLoading: false,
       );
     } catch (e) {
@@ -149,6 +155,16 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
     await _progressRepository.setThemePack(theme.name);
     AppColors.setTheme(theme);
     state = state.copyWith(activeTheme: theme);
+  }
+
+  Future<bool> unlockThemesWithCode(String inputCode) async {
+    final cleanCode = inputCode.replaceAll(' ', '').trim().toUpperCase();
+    if (cleanCode == 'THANKYOU') {
+      await _progressRepository.setThemesUnlocked(true);
+      state = state.copyWith(areThemesUnlocked: true);
+      return true;
+    }
+    return false;
   }
 
   Future<void> resetProgress() async {

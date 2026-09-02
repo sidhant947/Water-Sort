@@ -28,6 +28,16 @@ Sort the colored water in the tubes until each tube contains only one color. Sim
 - **Privacy First** — No permissions required beyond basic storage. No network access. Your data never leaves your phone.
 - **Clean UI** — Minimalist design with smooth animations and a relaxing color palette.
 
+---
+
+## Themes & Custom Skins
+
+Water Sort includes a theme selection system with custom skins. If you use it , support by giving a star to repo.
+
+*   **Unlock Code**: `THANKYOU` (Enter this code to unlock all themes & custom skins instantly).
+
+---
+
 
 ## License
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -88,7 +89,21 @@ class _GameViewState extends ConsumerState<GameView> {
 
     ref.listen<GameViewModelState>(gameViewModelProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
-        _showCompleteDialog();
+        if (!next.isInstantPouringEnabled) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (!mounted) return;
+            final currentState = ref.read(gameViewModelProvider);
+            if (!currentState.isComplete) return;
+            if (currentState.isSoundEffectsEnabled) {
+              try {
+                FlameAudio.play('level_complete.mp3');
+              } catch (_) {}
+            }
+            _showCompleteDialog();
+          });
+        } else {
+          _showCompleteDialog();
+        }
       }
       if (next.isTimeOut && !(prev?.isTimeOut ?? false)) {
         _showTimeOutDialog();
@@ -527,11 +542,14 @@ class _GameViewState extends ConsumerState<GameView> {
                     height: 50,
                     onPressed: () async {
                       final Uri url = Uri.parse('https://ko-fi.com/sidhant947');
-                      if (!await launchUrl(
-                        url,
-                        mode: LaunchMode.externalApplication,
-                      )) {
-                        debugPrint('Could not launch $url');
+                      try {
+                        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                          await launchUrl(url, mode: LaunchMode.platformDefault);
+                        }
+                      } catch (_) {
+                        try {
+                          await launchUrl(url, mode: LaunchMode.platformDefault);
+                        } catch (_) {}
                       }
                     },
                   ),

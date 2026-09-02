@@ -60,6 +60,11 @@ class WaterSortGame extends FlameGame with TapCallbacks {
           if (!_state.isInstantPouringEnabled) {
             _spawnVictoryBurst(_tubes[i], newTube.topColor ?? const Color(0xFF00FFCC));
           }
+          if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
+            try {
+              FlameAudio.play('tube_complete.mp3');
+            } catch (_) {}
+          }
         }
 
         _tubes[i].tube = newTube;
@@ -142,7 +147,11 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   Future<void> onLoad() async {
     super.onLoad();
     try {
-      await FlameAudio.audioCache.load('pouring.mp3');
+      await FlameAudio.audioCache.loadAll([
+        'pouring.mp3',
+        'tube_complete.mp3',
+        'level_complete.mp3',
+      ]);
     } catch (_) {}
   }
 
