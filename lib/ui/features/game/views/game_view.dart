@@ -361,54 +361,62 @@ class _GameViewState extends ConsumerState<GameView> {
               ],
             ),
           ),
-          if (state.isHintHelperEnabled) ...[
+          if (state.showHintButton) ...[
             const SizedBox(width: 12),
-            // Hint Button
+            // Hint Button (campaign ≥10 or random; max 3 per level/run)
             Expanded(
               child: GestureDetector(
-                onTap: () {
-                  final success = ref.read(gameViewModelProvider.notifier).showHint();
-                  if (!success) {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('No solution possible from current state. Try undoing some moves!'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
+                onTap: state.hintsRemaining <= 0
+                    ? null
+                    : () {
+                        final success =
+                            ref.read(gameViewModelProvider.notifier).showHint();
+                        if (!success) {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'No solution possible from current state. Try undoing some moves!',
+                              ),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
                 behavior: HitTestBehavior.opaque,
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFB300).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: const Color(0xFFFFB300).withValues(alpha: 0.35),
-                      width: 1.0,
+                child: Opacity(
+                  opacity: state.hintsRemaining <= 0 ? 0.4 : 1,
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFB300).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFFFFB300).withValues(alpha: 0.35),
+                        width: 1.0,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(
-                        Icons.lightbulb_rounded,
-                        size: 16,
-                        color: Color(0xFFFFB300),
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'HINT',
-                        style: TextStyle(
-                          fontFamily: 'BebasNeue',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_rounded,
+                          size: 16,
                           color: Color(0xFFFFB300),
-                          letterSpacing: 0.8,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          'TIP ${state.hintsRemaining}',
+                          style: const TextStyle(
+                            fontFamily: 'BebasNeue',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFFB300),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

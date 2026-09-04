@@ -558,13 +558,12 @@ class SettingsView extends ConsumerWidget {
                         onTap: () => ref.read(homeViewModelProvider.notifier).toggleTimer(),
                       ),
                       _buildDivider(),
-                      _buildSettingRow(
+                      _buildInfoRow(
                         icon: Icons.lightbulb_rounded,
                         iconColor: const Color(0xFFFFB300),
-                        title: 'HINT HELPER',
-                        description: 'Show a hint button during gameplay to highlight the next optimal move.',
-                        value: state.isHintHelperEnabled,
-                        onTap: () => ref.read(homeViewModelProvider.notifier).toggleHintHelper(),
+                        title: 'LEVEL TIPS',
+                        description:
+                            'From level 10 (and in random mode) you get 3 tips per puzzle. Each tip highlights the next good pour from your current board. Reset refills tips. Levels 1–9 have no tips.',
                       ),
                       _buildDivider(),
                       _buildSettingRow(
@@ -888,6 +887,61 @@ class SettingsView extends ConsumerWidget {
       color: Color(0xFF1F1F27),
       indent: 68,
       endIndent: 16,
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String description,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                color: iconColor.withValues(alpha: 0.35),
+                width: 1.0,
+              ),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'BebasNeue',
+                    fontSize: 16,
+                    color: AppColors.headingWhite,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.subtext,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

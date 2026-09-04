@@ -44,7 +44,11 @@ class GameViewModelState {
     this.isSoundEffectsEnabled = true,
     this.hintFromIndex,
     this.hintToIndex,
+    this.hintsRemaining = 0,
   });
+
+  static const int hintsPerLevel = 3;
+  static const int hintsUnlockLevel = 10;
 
   final GameLevel? level;
   final bool isLoading;
@@ -70,9 +74,16 @@ class GameViewModelState {
   final bool isSoundEffectsEnabled;
   final int? hintFromIndex;
   final int? hintToIndex;
+  final int hintsRemaining;
 
   bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
 
+  /// Tips button: campaign from level 10, or any random run. Independent of settings toggle.
+  bool get showHintButton {
+    if (isComplete || isTimeOut || level == null) return false;
+    if (isRandomMode) return true;
+    return level!.levelNumber >= hintsUnlockLevel;
+  }
 
   GameViewModelState copyWith({
     GameLevel? level,
@@ -99,6 +110,7 @@ class GameViewModelState {
     bool? isSoundEffectsEnabled,
     int? Function()? hintFromIndex,
     int? Function()? hintToIndex,
+    int? hintsRemaining,
   }) {
     return GameViewModelState(
       level: level ?? this.level,
@@ -130,6 +142,7 @@ class GameViewModelState {
           hintFromIndex != null ? hintFromIndex() : this.hintFromIndex,
       hintToIndex:
           hintToIndex != null ? hintToIndex() : this.hintToIndex,
+      hintsRemaining: hintsRemaining ?? this.hintsRemaining,
     );
   }
 }
@@ -144,6 +157,14 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   final LevelGenerator _levelGenerator;
 
   Timer? _timer;
+
+  int _initialHintsFor({required bool isRandom, required int levelNumber}) {
+    if (isRandom) return GameViewModelState.hintsPerLevel;
+    if (levelNumber >= GameViewModelState.hintsUnlockLevel) {
+      return GameViewModelState.hintsPerLevel;
+    }
+    return 0;
+  }
 
   bool _shouldHaveTimer({required bool isRandom, required int levelNumber, required String difficulty}) {
     if (!_progressRepository.isTimerEnabled()) {
@@ -225,6 +246,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         final isInstantPouring = _progressRepository.isInstantPouringEnabled();
         final isHintHelper = _progressRepository.isHintHelperEnabled();
         final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
+        final defaultHints = _initialHintsFor(isRandom: false, levelNumber: levelNumber);
+        final savedHints = savedMap['hintsRemaining'] as int?;
 
         state = GameViewModelState(
           level: level,
@@ -235,6 +258,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isInstantPouringEnabled: isInstantPouring,
           isHintHelperEnabled: isHintHelper,
           isSoundEffectsEnabled: isSoundEffects,
+          hintsRemaining: savedHints ?? defaultHints,
         );
 
         if (savedMap['timeLeft'] != null) {
@@ -257,6 +281,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         isInstantPouringEnabled: isInstantPouring,
         isHintHelperEnabled: isHintHelper,
         isSoundEffectsEnabled: isSoundEffects,
+        hintsRemaining: _initialHintsFor(isRandom: false, levelNumber: levelNumber),
       );
 
       _progressRepository.clearActiveLevelState();
@@ -294,6 +319,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       isInstantPouringEnabled: isInstantPouring,
       isHintHelperEnabled: isHintHelper,
       isSoundEffectsEnabled: isSoundEffects,
+      hintsRemaining: _initialHintsFor(isRandom: true, levelNumber: -1),
     );
 
     try {
@@ -348,6 +374,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isBlurSolvedTubesEnabled: isBlurSolved,
           isInstantPouringEnabled: isInstantPouring,
           isHintHelperEnabled: isHintHelper,
+          hintsRemaining: savedMap['hintsRemaining'] as int? ??
+              _initialHintsFor(isRandom: true, levelNumber: -1),
         );
 
         if (savedMap['timeLeft'] != null) {
@@ -632,6 +660,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       'moveCount': state.moveCount,
       'timeLeft': state.timeLeft,
       'optimalMoves': level.optimalMoves,
+      'hintsRemaining': state.hintsRemaining,
       'tubes': level.tubes.map((t) => {
         'colors': t.colors.map((c) => c.value).toList(),
         'capacity': t.capacity,
@@ -651,6 +680,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
   bool showHint() {
     if (state.level == null || state.isComplete || state.isTimeOut) return false;
+    if (!state.showHintButton || state.hintsRemaining <= 0) return false;
+
     final solver = LevelSolver();
 
     if (_cachedSolution == null || _cachedSolution!.isEmpty) {
@@ -671,7 +702,9 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         selectedTubeIndex: () => null,
         hintFromIndex: () => nextMove.fromIndex,
         hintToIndex: () => nextMove.toIndex,
+        hintsRemaining: state.hintsRemaining - 1,
       );
+      _saveCurrentState();
       return true;
     }
     return false;
