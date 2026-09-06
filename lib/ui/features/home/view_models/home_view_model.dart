@@ -17,6 +17,7 @@ class HomeViewModelState {
     this.isInstantPouringEnabled = false,
     this.isHintHelperEnabled = false,
     this.isSoundEffectsEnabled = true,
+    this.tubeSize = 'medium',
     this.levelStars = const {},
     this.activeTheme = ThemePack.midnight,
     this.areThemesUnlocked = false,
@@ -32,6 +33,7 @@ class HomeViewModelState {
   final bool isInstantPouringEnabled;
   final bool isHintHelperEnabled;
   final bool isSoundEffectsEnabled;
+  final String tubeSize;
   final Map<dynamic, dynamic> levelStars;
   final ThemePack activeTheme;
   final bool areThemesUnlocked;
@@ -47,6 +49,7 @@ class HomeViewModelState {
     bool? isInstantPouringEnabled,
     bool? isHintHelperEnabled,
     bool? isSoundEffectsEnabled,
+    String? tubeSize,
     Map<dynamic, dynamic>? levelStars,
     ThemePack? activeTheme,
     bool? areThemesUnlocked,
@@ -62,6 +65,7 @@ class HomeViewModelState {
       isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
       isHintHelperEnabled: isHintHelperEnabled ?? this.isHintHelperEnabled,
       isSoundEffectsEnabled: isSoundEffectsEnabled ?? this.isSoundEffectsEnabled,
+      tubeSize: tubeSize ?? this.tubeSize,
       levelStars: levelStars ?? this.levelStars,
       activeTheme: activeTheme ?? this.activeTheme,
       areThemesUnlocked: areThemesUnlocked ?? this.areThemesUnlocked,
@@ -87,6 +91,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final isInstantPouringEnabled = _progressRepository.isInstantPouringEnabled();
       final isHintHelperEnabled = _progressRepository.isHintHelperEnabled();
       final isSoundEffectsEnabled = _progressRepository.isSoundEffectsEnabled();
+      final tubeSize = _progressRepository.getTubeSize();
       final levelStars = _progressRepository.getAllLevelStars();
       final themeName = _progressRepository.getThemePack();
       final areThemesUnlocked = _progressRepository.areThemesUnlocked();
@@ -105,6 +110,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
         isInstantPouringEnabled: isInstantPouringEnabled,
         isHintHelperEnabled: isHintHelperEnabled,
         isSoundEffectsEnabled: isSoundEffectsEnabled,
+        tubeSize: tubeSize,
         levelStars: levelStars,
         activeTheme: theme,
         areThemesUnlocked: areThemesUnlocked,
@@ -149,6 +155,11 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
     final newValue = !state.isSoundEffectsEnabled;
     await _progressRepository.setSoundEffectsEnabled(newValue);
     state = state.copyWith(isSoundEffectsEnabled: newValue);
+  }
+
+  Future<void> setTubeSize(String size) async {
+    await _progressRepository.setTubeSize(size);
+    state = state.copyWith(tubeSize: size);
   }
 
   Future<void> setThemePack(ThemePack theme) async {

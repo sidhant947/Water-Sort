@@ -163,6 +163,16 @@ class HiveService {
     await _settingsBox.put('${profileId}_sound_effects', enabled);
   }
 
+  String getTubeSize() {
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_tube_size')?.toString() ?? 'medium';
+  }
+
+  Future<void> setTubeSize(String size) async {
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_tube_size', size);
+  }
+
   Map<dynamic, dynamic>? getSavedLevelState() {
     final profileId = _getActiveProfileIdSync();
     final raw = _settingsBox.get('${profileId}_saved_level_state');

@@ -104,6 +104,14 @@ class ProgressRepository {
     await _hiveService.setSoundEffectsEnabled(enabled);
   }
 
+  String getTubeSize() {
+    return _hiveService.getTubeSize();
+  }
+
+  Future<void> setTubeSize(String size) async {
+    await _hiveService.setTubeSize(size);
+  }
+
   Future<List<UserProfile>> getProfiles() async {
     return _hiveService.getProfiles();
   }

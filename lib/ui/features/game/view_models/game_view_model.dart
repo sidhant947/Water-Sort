@@ -42,6 +42,7 @@ class GameViewModelState {
     this.isInstantPouringEnabled = false,
     this.isHintHelperEnabled = false,
     this.isSoundEffectsEnabled = true,
+    this.tubeSize = 'medium',
     this.hintFromIndex,
     this.hintToIndex,
   });
@@ -68,6 +69,7 @@ class GameViewModelState {
   final bool isInstantPouringEnabled;
   final bool isHintHelperEnabled;
   final bool isSoundEffectsEnabled;
+  final String tubeSize;
   final int? hintFromIndex;
   final int? hintToIndex;
 
@@ -97,6 +99,7 @@ class GameViewModelState {
     bool? isInstantPouringEnabled,
     bool? isHintHelperEnabled,
     bool? isSoundEffectsEnabled,
+    String? tubeSize,
     int? Function()? hintFromIndex,
     int? Function()? hintToIndex,
   }) {
@@ -126,6 +129,7 @@ class GameViewModelState {
       isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
       isHintHelperEnabled: isHintHelperEnabled ?? this.isHintHelperEnabled,
       isSoundEffectsEnabled: isSoundEffectsEnabled ?? this.isSoundEffectsEnabled,
+      tubeSize: tubeSize ?? this.tubeSize,
       hintFromIndex:
           hintFromIndex != null ? hintFromIndex() : this.hintFromIndex,
       hintToIndex:
@@ -225,6 +229,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         final isInstantPouring = _progressRepository.isInstantPouringEnabled();
         final isHintHelper = _progressRepository.isHintHelperEnabled();
         final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
+        final tubeSize = _progressRepository.getTubeSize();
 
         state = GameViewModelState(
           level: level,
@@ -235,6 +240,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isInstantPouringEnabled: isInstantPouring,
           isHintHelperEnabled: isHintHelper,
           isSoundEffectsEnabled: isSoundEffects,
+          tubeSize: tubeSize,
         );
 
         if (savedMap['timeLeft'] != null) {
@@ -249,6 +255,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       final isInstantPouring = _progressRepository.isInstantPouringEnabled();
       final isHintHelper = _progressRepository.isHintHelperEnabled();
       final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
+      final tubeSize = _progressRepository.getTubeSize();
       debugPrint('LOAD LEVEL: isSuperHard = $isSuperHard');
       state = GameViewModelState(
         level: level,
@@ -257,6 +264,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         isInstantPouringEnabled: isInstantPouring,
         isHintHelperEnabled: isHintHelper,
         isSoundEffectsEnabled: isSoundEffects,
+        tubeSize: tubeSize,
       );
 
       _progressRepository.clearActiveLevelState();
@@ -282,6 +290,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     final isInstantPouring = _progressRepository.isInstantPouringEnabled();
     final isHintHelper = _progressRepository.isHintHelperEnabled();
     final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
+    final tubeSize = _progressRepository.getTubeSize();
     state = GameViewModelState(
       isLoading: true,
       isRandomMode: true,
@@ -294,6 +303,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       isInstantPouringEnabled: isInstantPouring,
       isHintHelperEnabled: isHintHelper,
       isSoundEffectsEnabled: isSoundEffects,
+      tubeSize: tubeSize,
     );
 
     try {
@@ -348,6 +358,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isBlurSolvedTubesEnabled: isBlurSolved,
           isInstantPouringEnabled: isInstantPouring,
           isHintHelperEnabled: isHintHelper,
+          isSoundEffectsEnabled: isSoundEffects,
+          tubeSize: tubeSize,
         );
 
         if (savedMap['timeLeft'] != null) {

@@ -34,9 +34,11 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled ||
         _state.isBlurSolvedTubesEnabled != newState.isBlurSolvedTubesEnabled ||
         _state.isInstantPouringEnabled != newState.isInstantPouringEnabled ||
-        _state.isSoundEffectsEnabled != newState.isSoundEffectsEnabled) {
+        _state.isSoundEffectsEnabled != newState.isSoundEffectsEnabled ||
+        _state.tubeSize != newState.tubeSize) {
+      final bool needRelayout = levelChanged || _state.tubeSize != newState.tubeSize;
       _state = newState;
-      if (levelChanged) {
+      if (needRelayout) {
         _layoutTubes();
       }
       _syncTubes();
@@ -179,17 +181,43 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     const double minMarginY = 16.0;
 
     final int capacity = level.tubes.isNotEmpty ? level.tubes.first.capacity : 4;
+    final int colorCount = level.colorCount;
     final double targetAspectRatio;
     final double minAspectRatio;
-    if (capacity >= 6) {
-      targetAspectRatio = 4.2;
-      minAspectRatio = 2.8;
-    } else if (capacity == 5) {
-      targetAspectRatio = 4.0;
-      minAspectRatio = 3.2;
-    } else {
-      targetAspectRatio = 3.4;
-      minAspectRatio = 2.6;
+    final double maxAllowedWidth;
+
+    switch (_state.tubeSize) {
+      case 'slim':
+        targetAspectRatio = 4.4;
+        minAspectRatio = 3.6;
+        maxAllowedWidth = 44.0;
+        break;
+      case 'medium':
+        targetAspectRatio = 3.4;
+        minAspectRatio = 2.9;
+        maxAllowedWidth = 54.0;
+        break;
+      case 'wide':
+        targetAspectRatio = 2.6;
+        minAspectRatio = 2.2;
+        maxAllowedWidth = 68.0;
+        break;
+      case 'adaptive':
+      default:
+        if (capacity >= 6 || colorCount >= 10) {
+          targetAspectRatio = 4.4;
+          minAspectRatio = 3.6;
+          maxAllowedWidth = 44.0;
+        } else if (capacity == 5 || colorCount >= 6) {
+          targetAspectRatio = 3.6;
+          minAspectRatio = 3.0;
+          maxAllowedWidth = 52.0;
+        } else {
+          targetAspectRatio = 2.8;
+          minAspectRatio = 2.3;
+          maxAllowedWidth = 64.0;
+        }
+        break;
     }
 
     final List<int> candidateRows = [];
@@ -212,8 +240,6 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     double bestSpacingY = 12.0;
     double bestStartY = 0.0;
     double bestScore = -1.0;
-
-    final double maxAllowedWidth = capacity >= 6 ? 64.0 : 54.0;
 
     for (final r in candidateRows) {
       final base = tubeCount ~/ r;
@@ -253,7 +279,8 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         final totalH = r * h + (r - 1) * spacingY;
         final widthUtil = widestRowW / containerWidth;
 
-        final double score = (w * h) * (0.4 + widthUtil * 0.6);
+        final arCloseness = 1.0 - ((targetAspectRatio - ar) / (targetAspectRatio - minAspectRatio + 0.001)) * 0.35;
+        final double score = (w * h) * (0.3 + widthUtil * 0.7) * arCloseness;
 
         if (score > bestScore) {
           bestScore = score;

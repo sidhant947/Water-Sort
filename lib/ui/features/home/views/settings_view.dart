@@ -610,6 +610,8 @@ class SettingsView extends ConsumerWidget {
                         value: state.isBlurSolvedTubesEnabled,
                         onTap: () => ref.read(homeViewModelProvider.notifier).toggleBlurSolvedTubes(),
                       ),
+                      _buildDivider(),
+                      _buildTubeSizeSelector(context, ref, state.tubeSize),
                     ],
                   ),
                   _buildSectionHeader(
@@ -823,6 +825,121 @@ class SettingsView extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTubeSizeSelector(BuildContext context, WidgetRef ref, String currentSize) {
+    const options = [
+      {'key': 'slim', 'label': 'SLIM'},
+      {'key': 'medium', 'label': 'MEDIUM'},
+      {'key': 'wide', 'label': 'WIDE'},
+      {'key': 'adaptive', 'label': 'ADAPTIVE'},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF818CF8).withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: const Color(0xFF818CF8).withValues(alpha: 0.35),
+                    width: 1.0,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.view_column_rounded,
+                  color: Color(0xFF818CF8),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TUBE SIZE',
+                      style: TextStyle(
+                        fontFamily: 'BebasNeue',
+                        fontSize: 16,
+                        color: AppColors.headingWhite,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Choose default tube width: Slim, Medium, Wide, or Adaptive (auto-sizes to 4, 5, or 6 colors).',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.subtext,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF101014),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF22222C),
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              children: options.map((opt) {
+                final isSelected = currentSize == opt['key'];
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      ref.read(homeViewModelProvider.notifier).setTubeSize(opt['key']!);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.accent.withValues(alpha: 0.16)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? AppColors.accent : Colors.transparent,
+                          width: 1.2,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        opt['label']!,
+                        style: TextStyle(
+                          fontFamily: 'BebasNeue',
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                          color: isSelected ? AppColors.accent : AppColors.subtext,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
