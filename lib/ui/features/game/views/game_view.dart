@@ -20,6 +20,7 @@ class GameView extends ConsumerStatefulWidget {
     this.randomDifficulty = 'Easy',
     this.randomColorCount,
     this.randomCapacity,
+    this.randomSeed,
   });
 
   final int levelNumber;
@@ -27,6 +28,7 @@ class GameView extends ConsumerStatefulWidget {
   final String randomDifficulty;
   final int? randomColorCount;
   final int? randomCapacity;
+  final int? randomSeed;
 
   @override
   ConsumerState<GameView> createState() => _GameViewState();
@@ -48,6 +50,7 @@ class _GameViewState extends ConsumerState<GameView> {
               widget.randomDifficulty,
               colorCount: widget.randomColorCount,
               capacity: widget.randomCapacity,
+              seed: widget.randomSeed,
             );
       } else {
         ref.read(gameViewModelProvider.notifier).loadLevel(widget.levelNumber);

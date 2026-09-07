@@ -10,6 +10,7 @@ import 'package:watersort/ui/providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:watersort/domain/models/user_profile.dart';
 import 'package:watersort/ui/features/home/views/settings_view.dart';
+import 'package:watersort/ui/features/multiplayer/views/multiplayer_view.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -118,50 +119,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
               ),
               const Spacer(flex: 3),
 
-              // Tactile Glass Droplet Logo
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF18181E),
-                  border: Border.all(
-                    color: AppColors.accent,
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      Icons.water_drop_rounded,
-                      size: 52,
-                      color: AppColors.accent,
-                    ),
-                    Positioned(
-                      top: 15,
-                      left: 15,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
 
               // Game Title
               Text(
@@ -260,6 +217,20 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 text: 'Random Puzzle',
                 isSecondary: true,
                 onPressed: () => _showDifficultyDialog(context),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Multiplayer Button
+              TangibleButton(
+                text: 'Multiplayer',
+                isSecondary: true,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MultiplayerView(),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 12),
