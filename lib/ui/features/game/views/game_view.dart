@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flame/game.dart';
-import 'package:flame_audio/flame_audio.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:watersort/ui/core/audio/game_audio.dart';
 import 'package:watersort/ui/core/theme/app_colors.dart';
 import 'package:watersort/ui/core/widgets/tangible_button.dart';
 import 'package:watersort/ui/features/game/view_models/game_view_model.dart';
@@ -37,6 +37,7 @@ class GameView extends ConsumerStatefulWidget {
 class _GameViewState extends ConsumerState<GameView> {
   WaterSortGame? _game;
   Timer? _hudSwitchTimer;
+  Timer? _completeSoundTimer;
   bool _showTimerInHud = false;
 
   @override
@@ -68,6 +69,7 @@ class _GameViewState extends ConsumerState<GameView> {
   @override
   void dispose() {
     _hudSwitchTimer?.cancel();
+    _completeSoundTimer?.cancel();
     super.dispose();
   }
 
@@ -93,14 +95,13 @@ class _GameViewState extends ConsumerState<GameView> {
     ref.listen<GameViewModelState>(gameViewModelProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         if (!next.isInstantPouringEnabled) {
-          Future.delayed(const Duration(milliseconds: 500), () {
+          _completeSoundTimer?.cancel();
+          _completeSoundTimer = Timer(const Duration(milliseconds: 500), () {
             if (!mounted) return;
             final currentState = ref.read(gameViewModelProvider);
             if (!currentState.isComplete) return;
             if (currentState.isSoundEffectsEnabled) {
-              try {
-                FlameAudio.play('level_complete.mp3');
-              } catch (_) {}
+              GameAudio.play(GameAudio.levelComplete);
             }
             _showCompleteDialog();
           });

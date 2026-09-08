@@ -2,10 +2,10 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:watersort/domain/models/tube.dart';
 import 'package:watersort/ui/features/game/view_models/game_view_model.dart';
+import 'package:watersort/ui/core/audio/game_audio.dart';
 import 'package:watersort/ui/core/theme/app_colors.dart';
 
 class WaterSortGame extends FlameGame with TapCallbacks {
@@ -25,27 +25,46 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   final List<GameParticle> _particles = [];
   final List<TapRipple> _ripples = [];
 
+  static const int _maxParticles = 240;
+  static const int _maxRipples = 6;
+
+  bool _pendingPourHandled = false;
+
   void updateState(GameViewModelState newState) {
-    final bool levelChanged = _state.level != newState.level || _tubes.length != (newState.level?.tubes.length ?? 0);
-    if (levelChanged ||
-        _state.selectedTubeIndex != newState.selectedTubeIndex ||
-        _state.hintFromIndex != newState.hintFromIndex ||
-        _state.hintToIndex != newState.hintToIndex ||
-        _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled ||
-        _state.isBlurSolvedTubesEnabled != newState.isBlurSolvedTubesEnabled ||
-        _state.isInstantPouringEnabled != newState.isInstantPouringEnabled ||
-        _state.isSoundEffectsEnabled != newState.isSoundEffectsEnabled ||
-        _state.tubeSize != newState.tubeSize) {
-      final bool needRelayout = levelChanged || _state.tubeSize != newState.tubeSize;
-      _state = newState;
-      if (needRelayout) {
-        _layoutTubes();
-      }
-      _syncTubes();
+    final GameViewModelState oldState = _state;
+    final int tubeCount = newState.level?.tubes.length ?? 0;
+    final bool levelChanged = _tubes.length != tubeCount ||
+        oldState.level?.levelNumber != newState.level?.levelNumber ||
+        oldState.randomSeed != newState.randomSeed;
+    // Rebuilding the layout is expensive; the level object identity changes on
+    // every move, so only relayout when the geometry actually changed.
+    final bool needRelayout = levelChanged || oldState.tubeSize != newState.tubeSize;
+
+    _state = newState;
+
+    if (needRelayout) {
+      _layoutTubes();
+    }
+    _syncTubes();
+
+    if (newState.pouringFromIndex == null || newState.pouringToIndex == null) {
+      _pendingPourHandled = false;
+      return;
     }
 
-    if (!newState.isInstantPouringEnabled && newState.pouringFromIndex != null && newState.pouringToIndex != null && _activePour == null) {
-      _startLevelAnimation(newState.pouringFromIndex!, newState.pouringToIndex!);
+    if (newState.isInstantPouringEnabled || _activePour != null || _pendingPourHandled) {
+      return;
+    }
+
+    _pendingPourHandled = true;
+    final bool started = _startLevelAnimation(
+      newState.pouringFromIndex!,
+      newState.pouringToIndex!,
+    );
+    if (!started) {
+      // Nothing to animate. Release the view model instead of leaving it
+      // locked in the "pouring" state, which would ignore every later tap.
+      Future.microtask(onPourComplete);
     }
   }
 
@@ -61,11 +80,9 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         if (newTube.isSolved && !oldTube.isSolved && !newTube.isEmpty) {
           if (!_state.isInstantPouringEnabled) {
             _spawnVictoryBurst(_tubes[i], newTube.topColor ?? const Color(0xFF00FFCC));
-          }
-          if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
-            try {
-              FlameAudio.play('tube_complete.mp3');
-            } catch (_) {}
+            if (_state.isSoundEffectsEnabled) {
+              GameAudio.play(GameAudio.tubeComplete);
+            }
           }
         }
 
@@ -80,8 +97,11 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     }
   }
 
-  void _startLevelAnimation(int fromIndex, int toIndex) {
-    if (fromIndex >= _tubes.length || toIndex >= _tubes.length) return;
+  /// Returns `true` when a pour animation was actually started.
+  bool _startLevelAnimation(int fromIndex, int toIndex) {
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= _tubes.length || toIndex >= _tubes.length) {
+      return false;
+    }
 
     final fromComp = _tubes[fromIndex];
     final toComp = _tubes[toIndex];
@@ -89,7 +109,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     final fromTube = fromComp.tube;
     final toTube = toComp.tube;
 
-    if (fromTube.isEmpty) return;
+    if (fromTube.isEmpty) return false;
     final colorToMove = fromTube.topColor!;
 
     int countToMove = 0;
@@ -104,20 +124,19 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     final availableSpace = toTube.capacity - toTube.colors.length;
     final pourCount = countToMove.clamp(0, availableSpace);
 
-    if (pourCount > 0) {
-      _activePour = ActivePourAnimation(
-        fromComponent: fromComp,
-        toComponent: toComp,
-        color: colorToMove,
-        pourCount: pourCount,
-        duration: _state.isSoundEffectsEnabled ? 0.65 : 0.2,
-      );
-      if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
-        try {
-          FlameAudio.play('pouring.mp3');
-        } catch (_) {}
-      }
+    if (pourCount == 0) return false;
+
+    _activePour = ActivePourAnimation(
+      fromComponent: fromComp,
+      toComponent: toComp,
+      color: colorToMove,
+      pourCount: pourCount,
+      duration: _state.isSoundEffectsEnabled ? 0.65 : 0.2,
+    );
+    if (_state.isSoundEffectsEnabled) {
+      GameAudio.play(GameAudio.pouring);
     }
+    return true;
   }
 
   void _spawnVictoryBurst(TubeComponent tubeComp, Color color) {
@@ -143,18 +162,16 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         ),
       );
     }
+
+    if (_particles.length > _maxParticles) {
+      _particles.removeRange(0, _particles.length - _maxParticles);
+    }
   }
 
   @override
   Future<void> onLoad() async {
-    super.onLoad();
-    try {
-      await FlameAudio.audioCache.loadAll([
-        'pouring.mp3',
-        'tube_complete.mp3',
-        'level_complete.mp3',
-      ]);
-    } catch (_) {}
+    await super.onLoad();
+    await GameAudio.init();
   }
 
   @override
@@ -368,6 +385,9 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     if (tappedTube != null) {
       final center = tappedTube.position + tappedTube.size / 2;
       if (!_state.isInstantPouringEnabled) {
+        if (_ripples.length >= _maxRipples) {
+          _ripples.removeRange(0, _ripples.length - _maxRipples + 1);
+        }
         _ripples.add(
           TapRipple(
             position: center,
@@ -385,6 +405,8 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
   @override
   void update(double dt) {
+    // A stalled frame must not fast-forward the animations in one jump.
+    if (dt > 0.05) dt = 0.05;
     super.update(dt);
 
     if (_activePour != null) {
@@ -416,7 +438,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         _ripples.removeAt(i);
       } else {
         final double t = r.life / r.maxLife;
-        r.radius = r.radius + (r.maxRadius - r.radius) * t;
+        r.radius = r.startRadius + (r.maxRadius - r.startRadius) * t;
       }
     }
   }
@@ -1150,9 +1172,10 @@ class TapRipple {
     required this.life,
     required this.maxLife,
     required this.color,
-  });
+  }) : startRadius = radius;
 
   Vector2 position;
+  final double startRadius;
   double radius;
   double maxRadius;
   double life;

@@ -148,6 +148,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   final LevelGenerator _levelGenerator;
 
   Timer? _timer;
+  Timer? _saveDebounce;
 
   bool _shouldHaveTimer({required bool isRandom, required int levelNumber, required String difficulty}) {
     if (!_progressRepository.isTimerEnabled()) {
@@ -188,6 +189,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
   Future<void> loadLevel(int levelNumber) async {
     _timer?.cancel();
+    _saveDebounce?.cancel();
     state = const GameViewModelState(isLoading: true);
 
     try {
@@ -284,6 +286,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     int? seed,
   }) async {
     _timer?.cancel();
+    _saveDebounce?.cancel();
     final int levelSeed = seed ?? DateTime.now().millisecondsSinceEpoch;
     final isSuperHard = _progressRepository.isSuperHardModeEnabled();
     final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
@@ -571,6 +574,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     Future<void> completeLevel() async {
       if (state.level == null || !state.isComplete || state.isProgressSaved) return;
       state = state.copyWith(isProgressSaved: true);
+      _saveDebounce?.cancel();
       _progressRepository.clearActiveLevelState();
       final moves = state.moveCount;
       final optimal = state.level?.optimalMoves ?? 0;
@@ -592,6 +596,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
     void resetLevel() {
       _cachedSolution = null;
+      _saveDebounce?.cancel();
       _progressRepository.clearActiveLevelState();
       if (state.level != null) {
         if (state.isRandomMode) {
@@ -629,6 +634,17 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   }
 
   void _saveCurrentState() {
+    // Serializing the whole board + move history on every tap makes fast play
+    // progressively jankier, so coalesce bursts of moves into one write.
+    _saveDebounce?.cancel();
+    if (state.level == null || state.isComplete) {
+      _progressRepository.clearActiveLevelState();
+      return;
+    }
+    _saveDebounce = Timer(const Duration(milliseconds: 350), _writeCurrentState);
+  }
+
+  void _writeCurrentState() {
     if (state.level == null || state.isComplete) {
       _progressRepository.clearActiveLevelState();
       return;
@@ -692,6 +708,10 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   @override
   void dispose() {
     _timer?.cancel();
+    if (_saveDebounce?.isActive ?? false) {
+      _saveDebounce!.cancel();
+      _writeCurrentState();
+    }
     super.dispose();
   }
 }
