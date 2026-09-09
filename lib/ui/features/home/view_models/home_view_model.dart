@@ -16,6 +16,7 @@ class HomeViewModelState {
     this.isBlurSolvedTubesEnabled = false,
     this.isInstantPouringEnabled = false,
     this.isHintHelperEnabled = false,
+    this.isUndoDecrementsMovesEnabled = false,
     this.isSoundEffectsEnabled = true,
     this.tubeSize = 'medium',
     this.levelStars = const {},
@@ -32,6 +33,7 @@ class HomeViewModelState {
   final bool isBlurSolvedTubesEnabled;
   final bool isInstantPouringEnabled;
   final bool isHintHelperEnabled;
+  final bool isUndoDecrementsMovesEnabled;
   final bool isSoundEffectsEnabled;
   final String tubeSize;
   final Map<dynamic, dynamic> levelStars;
@@ -48,6 +50,7 @@ class HomeViewModelState {
     bool? isBlurSolvedTubesEnabled,
     bool? isInstantPouringEnabled,
     bool? isHintHelperEnabled,
+    bool? isUndoDecrementsMovesEnabled,
     bool? isSoundEffectsEnabled,
     String? tubeSize,
     Map<dynamic, dynamic>? levelStars,
@@ -64,6 +67,7 @@ class HomeViewModelState {
       isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
       isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
       isHintHelperEnabled: isHintHelperEnabled ?? this.isHintHelperEnabled,
+      isUndoDecrementsMovesEnabled: isUndoDecrementsMovesEnabled ?? this.isUndoDecrementsMovesEnabled,
       isSoundEffectsEnabled: isSoundEffectsEnabled ?? this.isSoundEffectsEnabled,
       tubeSize: tubeSize ?? this.tubeSize,
       levelStars: levelStars ?? this.levelStars,
@@ -90,6 +94,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final isBlurSolvedTubesEnabled = _progressRepository.isBlurSolvedTubesEnabled();
       final isInstantPouringEnabled = _progressRepository.isInstantPouringEnabled();
       final isHintHelperEnabled = _progressRepository.isHintHelperEnabled();
+      final isUndoDecrementsMovesEnabled = _progressRepository.isUndoDecrementsMovesEnabled();
       final isSoundEffectsEnabled = _progressRepository.isSoundEffectsEnabled();
       final tubeSize = _progressRepository.getTubeSize();
       final levelStars = _progressRepository.getAllLevelStars();
@@ -109,6 +114,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
         isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled,
         isInstantPouringEnabled: isInstantPouringEnabled,
         isHintHelperEnabled: isHintHelperEnabled,
+        isUndoDecrementsMovesEnabled: isUndoDecrementsMovesEnabled,
         isSoundEffectsEnabled: isSoundEffectsEnabled,
         tubeSize: tubeSize,
         levelStars: levelStars,
@@ -149,6 +155,12 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
     final newValue = !state.isHintHelperEnabled;
     await _progressRepository.setHintHelperEnabled(newValue);
     state = state.copyWith(isHintHelperEnabled: newValue);
+  }
+
+  Future<void> toggleUndoDecrementsMoves() async {
+    final newValue = !state.isUndoDecrementsMovesEnabled;
+    await _progressRepository.setUndoDecrementsMovesEnabled(newValue);
+    state = state.copyWith(isUndoDecrementsMovesEnabled: newValue);
   }
 
   Future<void> toggleSoundEffects() async {

@@ -23,6 +23,15 @@ class GameLevel {
 
   bool get isComplete => tubes.every((t) => t.isSolved || t.isEmpty);
 
+  int calculateStars(int moves) {
+    if (moves <= optimalMoves) {
+      return 3;
+    } else if (moves <= (optimalMoves * 1.3).round()) {
+      return 2;
+    }
+    return 1;
+  }
+
 
 
   GameLevel copyWith({

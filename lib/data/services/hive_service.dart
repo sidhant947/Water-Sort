@@ -152,6 +152,17 @@ class HiveService {
     await _settingsBox.put('${profileId}_hint_helper', enabled);
   }
 
+  bool isUndoDecrementsMovesEnabled() {
+    final profileId = _getActiveProfileIdSync();
+    final val = _settingsBox.get('${profileId}_undo_decrements_moves');
+    return val == true;
+  }
+
+  Future<void> setUndoDecrementsMovesEnabled(bool enabled) async {
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_undo_decrements_moves', enabled);
+  }
+
   bool isSoundEffectsEnabled() {
     final profileId = _getActiveProfileIdSync();
     final val = _settingsBox.get('${profileId}_sound_effects');

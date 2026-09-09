@@ -96,6 +96,14 @@ class ProgressRepository {
     await _hiveService.setHintHelperEnabled(enabled);
   }
 
+  bool isUndoDecrementsMovesEnabled() {
+    return _hiveService.isUndoDecrementsMovesEnabled();
+  }
+
+  Future<void> setUndoDecrementsMovesEnabled(bool enabled) async {
+    await _hiveService.setUndoDecrementsMovesEnabled(enabled);
+  }
+
   bool isSoundEffectsEnabled() {
     return _hiveService.isSoundEffectsEnabled();
   }

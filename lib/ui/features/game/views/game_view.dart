@@ -449,16 +449,7 @@ class _GameViewState extends ConsumerState<GameView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(3, (index) {
-                  final moves = state.moveCount;
-                  final optimal = state.level?.optimalMoves ?? 0;
-                  final int filledStars;
-                  if (moves < optimal) {
-                    filledStars = 3;
-                  } else if (moves == optimal) {
-                    filledStars = 2;
-                  } else {
-                    filledStars = 1;
-                  }
+                  final filledStars = state.level?.calculateStars(state.moveCount) ?? 1;
                   final isFilled = index < filledStars;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),

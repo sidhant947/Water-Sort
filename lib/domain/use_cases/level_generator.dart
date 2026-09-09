@@ -30,7 +30,7 @@ class LevelGenerator {
     return GameLevel(
       levelNumber: levelNumber,
       tubes: tubes,
-      optimalMoves: _getPredefinedOptimalMoves(colorCount, levelNumber),
+      optimalMoves: _getPredefinedOptimalMoves(colorCount, capacity, levelNumber),
     );
   }
 
@@ -64,13 +64,13 @@ class LevelGenerator {
     return GameLevel(
       levelNumber: -1,
       tubes: tubes,
-      optimalMoves: _getPredefinedOptimalMoves(colorCount, seed),
+      optimalMoves: _getPredefinedOptimalMoves(colorCount, capacity, seed),
     );
   }
 
-  int _getPredefinedOptimalMoves(int colorCount, int seed) {
+  int _getPredefinedOptimalMoves(int colorCount, int capacity, int seed) {
     final random = Random(seed);
-    final baseMoves = colorCount * 4;
+    final baseMoves = (colorCount * capacity * 1.2).round();
     final variance = random.nextInt(5) - 2;
     return baseMoves + variance;
   }

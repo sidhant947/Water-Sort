@@ -41,6 +41,7 @@ class GameViewModelState {
     this.isBlurSolvedTubesEnabled = false,
     this.isInstantPouringEnabled = false,
     this.isHintHelperEnabled = false,
+    this.isUndoDecrementsMovesEnabled = false,
     this.isSoundEffectsEnabled = true,
     this.tubeSize = 'medium',
     this.hintFromIndex,
@@ -68,12 +69,13 @@ class GameViewModelState {
   final bool isBlurSolvedTubesEnabled;
   final bool isInstantPouringEnabled;
   final bool isHintHelperEnabled;
+  final bool isUndoDecrementsMovesEnabled;
   final bool isSoundEffectsEnabled;
   final String tubeSize;
   final int? hintFromIndex;
   final int? hintToIndex;
 
-  bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
+  bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut && pouringFromIndex == null;
 
 
   GameViewModelState copyWith({
@@ -98,6 +100,7 @@ class GameViewModelState {
     bool? isBlurSolvedTubesEnabled,
     bool? isInstantPouringEnabled,
     bool? isHintHelperEnabled,
+    bool? isUndoDecrementsMovesEnabled,
     bool? isSoundEffectsEnabled,
     String? tubeSize,
     int? Function()? hintFromIndex,
@@ -128,6 +131,7 @@ class GameViewModelState {
       isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
       isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
       isHintHelperEnabled: isHintHelperEnabled ?? this.isHintHelperEnabled,
+      isUndoDecrementsMovesEnabled: isUndoDecrementsMovesEnabled ?? this.isUndoDecrementsMovesEnabled,
       isSoundEffectsEnabled: isSoundEffectsEnabled ?? this.isSoundEffectsEnabled,
       tubeSize: tubeSize ?? this.tubeSize,
       hintFromIndex:
@@ -228,6 +232,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
         final isInstantPouring = _progressRepository.isInstantPouringEnabled();
         final isHintHelper = _progressRepository.isHintHelperEnabled();
+        final isUndoDecrementsMoves = _progressRepository.isUndoDecrementsMovesEnabled();
         final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
         final tubeSize = _progressRepository.getTubeSize();
 
@@ -239,6 +244,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isBlurSolvedTubesEnabled: isBlurSolved,
           isInstantPouringEnabled: isInstantPouring,
           isHintHelperEnabled: isHintHelper,
+          isUndoDecrementsMovesEnabled: isUndoDecrementsMoves,
           isSoundEffectsEnabled: isSoundEffects,
           tubeSize: tubeSize,
         );
@@ -254,6 +260,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
       final isInstantPouring = _progressRepository.isInstantPouringEnabled();
       final isHintHelper = _progressRepository.isHintHelperEnabled();
+      final isUndoDecrementsMoves = _progressRepository.isUndoDecrementsMovesEnabled();
       final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
       final tubeSize = _progressRepository.getTubeSize();
       debugPrint('LOAD LEVEL: isSuperHard = $isSuperHard');
@@ -263,6 +270,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         isBlurSolvedTubesEnabled: isBlurSolved,
         isInstantPouringEnabled: isInstantPouring,
         isHintHelperEnabled: isHintHelper,
+        isUndoDecrementsMovesEnabled: isUndoDecrementsMoves,
         isSoundEffectsEnabled: isSoundEffects,
         tubeSize: tubeSize,
       );
@@ -289,6 +297,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
     final isInstantPouring = _progressRepository.isInstantPouringEnabled();
     final isHintHelper = _progressRepository.isHintHelperEnabled();
+    final isUndoDecrementsMoves = _progressRepository.isUndoDecrementsMovesEnabled();
     final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
     final tubeSize = _progressRepository.getTubeSize();
     state = GameViewModelState(
@@ -302,6 +311,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       isBlurSolvedTubesEnabled: isBlurSolved,
       isInstantPouringEnabled: isInstantPouring,
       isHintHelperEnabled: isHintHelper,
+      isUndoDecrementsMovesEnabled: isUndoDecrementsMoves,
       isSoundEffectsEnabled: isSoundEffects,
       tubeSize: tubeSize,
     );
@@ -358,6 +368,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isBlurSolvedTubesEnabled: isBlurSolved,
           isInstantPouringEnabled: isInstantPouring,
           isHintHelperEnabled: isHintHelper,
+          isUndoDecrementsMovesEnabled: isUndoDecrementsMoves,
           isSoundEffectsEnabled: isSoundEffects,
           tubeSize: tubeSize,
         );
@@ -572,16 +583,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       if (state.level == null || !state.isComplete || state.isProgressSaved) return;
       state = state.copyWith(isProgressSaved: true);
       _progressRepository.clearActiveLevelState();
-      final moves = state.moveCount;
-      final optimal = state.level?.optimalMoves ?? 0;
-      final int filledStars;
-      if (moves < optimal) {
-        filledStars = 3;
-      } else if (moves == optimal) {
-        filledStars = 2;
-      } else {
-        filledStars = 1;
-      }
+      final filledStars = state.level!.calculateStars(state.moveCount);
       await _progressRepository.saveLevelStars(state.level!.levelNumber, filledStars);
       if (state.isRandomMode) {
         await _progressRepository.addRandomLevelMoves(state.moveCount);
@@ -618,6 +620,9 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
       state = state.copyWith(
         level: state.level!.copyWith(tubes: snapshot.tubes),
+        moveCount: state.isUndoDecrementsMovesEnabled
+            ? (state.moveCount > 0 ? state.moveCount - 1 : 0)
+            : state.moveCount,
         selectedTubeIndex: () => null,
         isComplete: false,
         moveHistory: newHistory,

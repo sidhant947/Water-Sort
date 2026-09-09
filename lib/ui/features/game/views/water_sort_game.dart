@@ -20,36 +20,46 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   final VoidCallback onPourComplete;
 
   final List<TubeComponent> _tubes = [];
+  List<TubeComponent> get tubes => _tubes;
   ActivePourAnimation? _activePour;
 
   final List<GameParticle> _particles = [];
   final List<TapRipple> _ripples = [];
+  AudioPool? _pourPool;
+  AudioPool? _tubeCompletePool;
 
   void updateState(GameViewModelState newState) {
-    final bool levelChanged = _state.level != newState.level || _tubes.length != (newState.level?.tubes.length ?? 0);
-    if (levelChanged ||
-        _state.selectedTubeIndex != newState.selectedTubeIndex ||
-        _state.hintFromIndex != newState.hintFromIndex ||
-        _state.hintToIndex != newState.hintToIndex ||
-        _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled ||
-        _state.isBlurSolvedTubesEnabled != newState.isBlurSolvedTubesEnabled ||
-        _state.isInstantPouringEnabled != newState.isInstantPouringEnabled ||
-        _state.isSoundEffectsEnabled != newState.isSoundEffectsEnabled ||
-        _state.tubeSize != newState.tubeSize) {
-      final bool needRelayout = levelChanged || _state.tubeSize != newState.tubeSize;
-      _state = newState;
-      if (needRelayout) {
-        _layoutTubes();
+    final bool levelChanged = _state.level?.levelNumber != newState.level?.levelNumber ||
+        _state.randomSeed != newState.randomSeed ||
+        _tubes.length != (newState.level?.tubes.length ?? 0);
+    final bool needRelayout = levelChanged || _state.tubeSize != newState.tubeSize;
+    final bool isUndo = newState.moveHistory.length < _state.moveHistory.length;
+
+    _state = newState;
+    if (levelChanged || isUndo) {
+      _activePour?.reset();
+      _activePour = null;
+    }
+    if (needRelayout) {
+      _layoutTubes();
+    }
+    _syncTubes(isUndo: isUndo, levelChanged: levelChanged);
+    if (levelChanged) {
+      for (final t in _tubes) {
+        t.sloshDisplacement = 0.0;
+        t.sloshVelocity = 0.0;
       }
-      _syncTubes();
     }
 
     if (!newState.isInstantPouringEnabled && newState.pouringFromIndex != null && newState.pouringToIndex != null && _activePour == null) {
       _startLevelAnimation(newState.pouringFromIndex!, newState.pouringToIndex!);
+      if (_activePour == null) {
+        onPourComplete();
+      }
     }
   }
 
-  void _syncTubes() {
+  void _syncTubes({bool isUndo = false, bool levelChanged = false}) {
     final level = _state.level;
     if (level == null) return;
 
@@ -58,18 +68,24 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         final newTube = level.tubes[i];
         final oldTube = _tubes[i].tube;
 
-        if (newTube.isSolved && !oldTube.isSolved && !newTube.isEmpty) {
+        if (!levelChanged && !isUndo && newTube.isSolved && !oldTube.isSolved && !newTube.isEmpty) {
           if (!_state.isInstantPouringEnabled) {
             _spawnVictoryBurst(_tubes[i], newTube.topColor ?? const Color(0xFF00FFCC));
           }
           if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
-            try {
-              FlameAudio.play('tube_complete.mp3');
-            } catch (_) {}
+            _tubeCompletePool?.start().then((_) {}, onError: (_) {});
           }
         }
 
+        if (isUndo && newTube != oldTube && !_state.isInstantPouringEnabled) {
+          _tubes[i].sloshVelocity += 14.0;
+        }
+
         _tubes[i].tube = newTube;
+        if (isUndo) {
+          _tubes[i].isAnimatingSource = false;
+          _tubes[i].isAnimatingTarget = false;
+        }
         _tubes[i].isSelected = _state.selectedTubeIndex == i;
         _tubes[i].isSuperHardModeEnabled = _state.isSuperHardModeEnabled;
         _tubes[i].isBlurSolvedTubesEnabled = _state.isBlurSolvedTubesEnabled;
@@ -113,9 +129,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         duration: _state.isSoundEffectsEnabled ? 0.65 : 0.2,
       );
       if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
-        try {
-          FlameAudio.play('pouring.mp3');
-        } catch (_) {}
+        _pourPool?.start().then((_) {}, onError: (_) {});
       }
     }
   }
@@ -147,14 +161,18 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
   @override
   Future<void> onLoad() async {
-    super.onLoad();
+    await super.onLoad();
     try {
-      await FlameAudio.audioCache.loadAll([
-        'pouring.mp3',
-        'tube_complete.mp3',
-        'level_complete.mp3',
-      ]);
+      _pourPool = await FlameAudio.createPool('pouring.mp3', maxPlayers: 2);
+      _tubeCompletePool = await FlameAudio.createPool('tube_complete.mp3', maxPlayers: 2);
     } catch (_) {}
+  }
+
+  @override
+  void onRemove() {
+    _pourPool?.dispose();
+    _tubeCompletePool?.dispose();
+    super.onRemove();
   }
 
   @override
@@ -385,10 +403,11 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
   @override
   void update(double dt) {
-    super.update(dt);
+    final double safeDt = dt.clamp(0.0, 0.033);
+    super.update(safeDt);
 
     if (_activePour != null) {
-      final done = _activePour!.update(dt);
+      final done = _activePour!.update(safeDt);
       if (done) {
         _activePour!.reset();
         _activePour = null;
@@ -399,24 +418,23 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
     for (int i = _particles.length - 1; i >= 0; i--) {
       final p = _particles[i];
-      p.life += dt;
+      p.life += safeDt;
       if (p.life >= p.maxLife) {
         _particles.removeAt(i);
       } else {
-        p.position += p.velocity * dt;
-        p.velocity.y += 280.0 * dt;
-        p.angle += p.spinSpeed * dt;
+        p.position += p.velocity * safeDt;
+        p.velocity.y += 280.0 * safeDt;
+        p.angle += p.spinSpeed * safeDt;
       }
     }
 
     for (int i = _ripples.length - 1; i >= 0; i--) {
       final r = _ripples[i];
-      r.life += dt;
+      r.life += safeDt;
       if (r.life >= r.maxLife) {
         _ripples.removeAt(i);
       } else {
-        final double t = r.life / r.maxLife;
-        r.radius = r.radius + (r.maxRadius - r.radius) * t;
+        r.radius = 5.0 + (r.maxRadius - 5.0) * (r.life / r.maxLife).clamp(0.0, 1.0);
       }
     }
   }
@@ -512,8 +530,9 @@ class TubeComponent extends PositionComponent {
 
   @override
   void update(double dt) {
-    super.update(dt);
-    time += dt;
+    final double clampedDt = dt.clamp(0.0, 0.033);
+    super.update(clampedDt);
+    time += clampedDt;
 
     if (isInstantPouringEnabled) {
       sloshVelocity = 0.0;
@@ -534,8 +553,14 @@ class TubeComponent extends PositionComponent {
     final double springConstant = 120.0;
     final double damping = 4.5;
     final double acceleration = -springConstant * sloshDisplacement - damping * sloshVelocity;
-    sloshVelocity += acceleration * dt;
-    sloshDisplacement += sloshVelocity * dt;
+    sloshVelocity += acceleration * clampedDt;
+    sloshVelocity = sloshVelocity.clamp(-60.0, 60.0);
+    sloshDisplacement += sloshVelocity * clampedDt;
+    sloshDisplacement = sloshDisplacement.clamp(-15.0, 15.0);
+    if (sloshDisplacement.abs() < 0.01 && sloshVelocity.abs() < 0.01) {
+      sloshDisplacement = 0.0;
+      sloshVelocity = 0.0;
+    }
 
     if (isSelected) {
       position.y = originalPosition.y - 18 + 3.0 * math.sin(time * 6.0);
